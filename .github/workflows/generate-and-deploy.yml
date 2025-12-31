@@ -1,0 +1,42 @@
+name: Generate and Deploy Cafe Menu
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Generate menu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Run generator
+        run: |
+          python generate_menu.py --input cafe.json --outdir output --title "منوی کافه" --persian-digits
+
+      - name: Ensure index.html for Pages
+        run: |
+          cp output/menu.html output/index.html || true
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: output
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy
+        uses: actions/deploy-pages@v1
