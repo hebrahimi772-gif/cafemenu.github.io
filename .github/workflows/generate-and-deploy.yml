@@ -1,16 +1,21 @@
-name: Generate and Deploy Cafe Menu
+name: Generate and Publish Cafe Menu
 
 on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    name: Generate menu
+  build-and-publish:
+    name: Generate and publish site
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -25,18 +30,15 @@ jobs:
         run: |
           cp output/menu.html output/index.html || true
 
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: output
+      - name: Sync output to repository root
+        run: |
+          rsync -a --delete output/ ./
 
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-      - name: Deploy
-        uses: actions/deploy-pages@v1
+      - name: Commit and push generated site
+        env:
+          GITHUB_ACTOR: github-actions
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git diff --staged --quiet || (git commit -m "chore(ci): build site [skip ci]" && git push origin HEAD:main)
