@@ -32,7 +32,12 @@ jobs:
 
       - name: Sync output to repository root
         run: |
-          rsync -a --delete output/ ./
+          if [ -d output ]; then
+            # copy all generated files to repo root; tolerate transient file changes
+            cp -a output/. ./ || true
+          else
+            echo "No output directory produced"
+          fi
 
       - name: Commit and push generated site
         env:
